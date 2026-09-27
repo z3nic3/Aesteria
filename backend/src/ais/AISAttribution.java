@@ -84,15 +84,24 @@ public class AISAttribution {
 
         List<VesselRecord> vessels = new ArrayList<>();
 
-        String databaseUrl = System.getenv("DATABASE_URL");
+        String host = System.getenv("PGHOST");
+        String port = System.getenv("PGPORT");
+        String database = System.getenv("PGDATABASE");
+        String user = System.getenv("PGUSER");
+        String password = System.getenv("PGPASSWORD");
 
-        if (databaseUrl == null || databaseUrl.isBlank()) {
-                 throw new Exception("DATABASE_URL is not set.");
+        if (host == null || port == null || database == null
+                || user == null || password == null) {
+            throw new Exception(
+                    "PostgreSQL environment variables are not set."
+            );
         }
 
-        if (!databaseUrl.startsWith("jdbc:")) {
-                 databaseUrl = "jdbc:" + databaseUrl;
-        }
+        String databaseUrl =
+                "jdbc:postgresql://" +
+                host + ":" +
+                port + "/" +
+                database;
 
         String sql = """
             SELECT mmsi, latitude, longitude, sog, cog, timestamp
@@ -101,7 +110,12 @@ public class AISAttribution {
             """;
 
         try (
-            Connection connection = DriverManager.getConnection(databaseUrl);
+            Connection connection =
+                    DriverManager.getConnection(
+                            databaseUrl,
+                            user,
+                            password
+                    );
             PreparedStatement statement =
                     connection.prepareStatement(sql);
             ResultSet rs = statement.executeQuery()
