@@ -1,0 +1,19 @@
+# Compiled Java
+backend/bin/
+*.class
+
+# Generated results (regenerated automatically on every server start)
+backend/data/results.json
+
+# Python / Jupyter
+model/__pycache__/
+model/.ipynb_checkpoints/
+*.pyc
+
+# OS / editor junk
+.DS_Store
+.vscode/
+# Local environment / secrets
+.env
+.env.*
+!.env.example

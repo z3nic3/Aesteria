@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="aesteria-build" content="map-polish-v2-fixed">
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aesteria | Maritime Oil Spill Intelligence</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+
+<style>
+
+/* =========================================================
+   AESTERIA — Maritime Oil Spill Intelligence
+   Design system: official maritime-surveillance instrument
+   panel. Deep hydrographic navy, chart-paper white, a single
+   working accent (sonar teal) reserved for "live" states.
+   Data figures set in mono for console-grade legibility.
+   ========================================================= */
+
+:root{
+
+    /* ---- core palette ---- */
+    --ink:        #0e2233;
+    --navy:       #0b3b63;
+    --navy-deep:  #082441;
+    --teal:       #0d7a8a;
+    --teal-light: #e7f3f4;
+
+    --green:      #2c7a4b;
+    --green-light:#eaf6ee;
+
+    --amber:      #a8690c;
+    --amber-light:#fcf3e3;
+
+    --red:        #ac3b3b;
+    --red-light:  #fbeced;
+
+    --purple:     #6a4c93;
+    --purple-light:#f0ecf6;
+
+    --paper:      #f6f7f7;
+    --surface:    #ffffff;
+    --surface-2:  #fafbfb;
+
+    --line:       #dde2e5;
+    --line-strong:#c9d0d4;
+
+    --text:       #1c2e3b;
+    --text-soft:  #526270;
+    --text-mute:  #7c8a94;
+
+    --shadow:     0 1px 2px rgba(10,30,45,.05);
+    --shadow-hover: 0 6px 18px rgba(10,30,45,.10);
+
+    --radius: 3px;
+    --ease: cubic-bezier(.2,.65,.3,1);
+
+    --gov-saffron:#ff9933;
+    --gov-white:  #f5f5f0;
+    --gov-green:  #128807;
+}
+
+*{ box-sizing:border-box; }
+
+html{ scroll-behavior:smooth; }
+
+@media (prefers-reduced-motion: reduce){
+    html{ scroll-behavior:auto; }
+    *{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+
+body{
+    margin:0;
+    padding-top:4px;
+    background:var(--paper);
+    color:var(--text);
+    font-family:"Public Sans", "Segoe UI", Arial, Helvetica, sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+}
+
+.mono{
+    font-family:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+    font-feature-settings:"tnum" 1;
+}
+
+:focus-visible{
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+}
+
+/* =========================================================
+   NATIONAL STRIP
+   ========================================================= */
+
+.gov-strip{
+    position:fixed;
+    top:0; left:0; right:0;
+    height:4px;
+    display:flex;
+    z-index:1200;
+}
+.gov-strip span{ flex:1; }
+.gov-strip span:nth-child(1){ background:var(--gov-saffron); }
+.gov-strip span:nth-child(2){ background:var(--gov-white); }
+.gov-strip span:nth-child(3){ background:var(--gov-green); }
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+
+.layout{ min-height:100vh; display:flex; }
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
+.sidebar{
+    width:244px;
+    position:fixed;
+    top:4px; bottom:0; left:0;
+    background:var(--surface);
+    border-right:1px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    z-index:1000;
+}
+
+.brand{
+    padding:22px 20px 20px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.brand-mark{
+    width:40px; height:40px;
+    flex:none;
+    border-radius:50%;
+    border:1.5px solid var(--navy);
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--navy);
+}
+.brand-mark::before{
+    content:"";
+    position:absolute;
+    inset:4px;
+    border:1px solid var(--line-strong);
+    border-radius:50%;
+}
+.brand-mark svg{ width:18px; height:18px; position:relative; }
+
+.brand-text small{
+    display:block;
+    color:var(--text-mute);
+    font-size:9px;
+    letter-spacing:1.3px;
+    font-weight:600;
+    text-transform:uppercase;
+}
+.brand-text strong{
+    display:block;
+    margin-top:2px;
+    color:var(--navy-deep);
+    font-size:18px;
+    font-weight:800;
+    letter-spacing:-.2px;
+}
+
+.nav{ padding:16px 12px; overflow-y:auto; }
+
+.nav-label{
+    padding:0 10px 8px;
+    color:var(--text-mute);
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.4px;
+}
+
+.nav a{
+    display:flex;
+    align-items:center;
+    gap:11px;
+    margin:2px 0;
+    padding:10px 11px;
+    border-radius:var(--radius);
+    color:var(--text-soft);
+    text-decoration:none;
+    border-left:2px solid transparent;
+    font-size:13px;
+    font-weight:500;
+    transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+}
+.nav a:hover{ background:var(--surface-2); color:var(--navy); }
+.nav a.active{
+    background:var(--teal-light);
+    color:var(--navy-deep);
+    border-left-color:var(--teal);
+    font-weight:600;
+}
+.nav-icon{
+    width:17px; height:17px;
+    flex:none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-mute);
+}
+.nav a.active .nav-icon, .nav a:hover .nav-icon{ color:var(--teal); }
+.nav-icon svg{ width:16px; height:16px; }
+
+.system-status{
+    margin:auto 14px 16px;
+    padding:13px 14px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+}
+.system-status-title{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    color:var(--green);
+    font-weight:700;
+    font-size:12px;
+}
+.status-dot{
+    width:6px; height:6px;
+    border-radius:50%;
+    background:var(--green);
+    box-shadow:0 0 0 3px var(--green-light);
+}
+.system-status small{
+    display:block;
+    margin-top:7px;
+    color:var(--text-mute);
+    font-size:10.5px;
+    line-height:1.5;
+}
+
+/* =========================================================
+   MAIN
+   ========================================================= */
+
+.main{
+    width:calc(100% - 244px);
+    margin-left:244px;
+    min-height:100vh;
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
+
+.header{
+    min-height:78px;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+    padding:17px 30px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:20px;
+}
+
+.header-left{ display:flex; flex-direction:column; gap:4px; }
+
+.header-kicker{
+    color:var(--text-mute);
+    font-size:10.5px;
+    font-weight:600;
+    letter-spacing:.3px;
+}
+
+.header h1{
+    margin:0;
+    color:var(--navy-deep);
+    font-size:21px;
+    line-height:1.25;
+    font-weight:800;
+    letter-spacing:-.2px;
+}
+
+.header-subtitle{ margin:0; color:var(--text-mute); font-size:12px; }
+
+.header-right{ display:flex; align-items:center; gap:10px; }
+
+.live-status{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    padding:7px 11px;
+    background:var(--green-light);
+    border:1px solid #cbe4d3;
+    border-radius:var(--radius);
+    color:var(--green);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.2px;
+    white-space:nowrap;
+}
+.live-status .status-dot{ width:6px; height:6px; }
+
+.clock{
+    color:var(--text-soft);
+    font-size:11.5px;
+    white-space:nowrap;
+    padding:7px 4px;
+}
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.content{ max-width:1560px; margin:0 auto; padding:22px 26px 40px; }
+
+.fade-in{
+    opacity:0;
+    transform:translateY(6px);
+    animation:reveal .45s var(--ease) forwards;
+}
+@keyframes reveal{ to{ opacity:1; transform:none; } }
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+
+.card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+}
+
+/* =========================================================
+   EVENT STATUS STRIP
+   ========================================================= */
+
+.status{
+    margin-bottom:16px;
+    padding:10px 14px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-left:3px solid var(--navy);
+    border-radius:var(--radius);
+    color:var(--text-soft);
+    font-size:11.5px;
+    line-height:1.6;
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 4px;
+    align-items:center;
+}
+.status strong{ color:var(--navy); }
+.status .sep{ color:var(--line-strong); }
+.status .event-code{
+    color:var(--navy);
+    font-weight:600;
+    background:var(--surface-2);
+    padding:1px 6px;
+    border-radius:2px;
+    border:1px solid var(--line);
+}
+
+/* =========================================================
+   SECTION HEADINGS
+   ========================================================= */
+
+.section-heading{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    margin:26px 0 12px;
+}
+.section-heading h2{
+    margin:0;
+    color:var(--navy-deep);
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:-.1px;
+}
+.section-heading p{ margin:3px 0 0; color:var(--text-mute); font-size:11.5px; }
+
+.section-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    padding:3px 9px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:2px;
+    color:var(--text-mute);
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:.3px;
+}
+.section-badge .dot{ width:5px; height:5px; border-radius:50%; background:var(--amber); }
+
+/* =========================================================
+   TOP METRICS
+   ========================================================= */
+
+.grid4{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; }
+
+.metric{
+    min-height:110px;
+    padding:17px 18px;
+    position:relative;
+    overflow:hidden;
+    transition:box-shadow .18s var(--ease), border-color .18s var(--ease);
+}
+.metric::before{
+    content:"";
+    position:absolute; top:0; left:0; bottom:0;
+    width:3px;
+    background:var(--line-strong);
+}
+.metric:hover{ box-shadow:var(--shadow-hover); border-color:var(--line-strong); }
+.metric.green-card::before{ background:var(--green); }
+.metric.blue-card::before{ background:var(--teal); }
+.metric.amber-card::before{ background:var(--amber); }
+.metric.neutral-card::before{ background:var(--navy); }
+.metric.purple-card::before{ background:var(--purple); }
+
+.metric-label{
+    color:var(--text-mute);
+    font-size:10px;
+    font-weight:600;
+    letter-spacing:.4px;
+}
+.metric-value{
+    margin-top:9px;
+    color:var(--navy-deep);
+    font-size:22px;
+    font-weight:700;
+    line-height:1.25;
+    font-family:"IBM Plex Mono", ui-monospace, monospace;
+}
+.metric-value.green{ color:var(--green); }
+.metric-value.amber{ color:var(--amber); }
+.metric-meta{ margin-top:6px; color:var(--text-mute); font-size:11px; }
+
+/* =========================================================
+   THREE COLUMN ROW
+   ========================================================= */
+
+.row{
+    display:grid;
+    grid-template-columns:minmax(210px, .85fr) minmax(400px, 2.2fr) minmax(210px, .85fr);
+    gap:13px;
+    margin-top:13px;
+}
+
+.panel{ padding:16px; }
+
+.panel-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:13px;
+    padding-bottom:11px;
+    border-bottom:1px solid var(--line);
+}
+.panel-title{ margin:0; color:var(--navy); font-size:12.5px; font-weight:700; }
+.panel-label{ color:var(--text-mute); font-size:10px; letter-spacing:.3px; }
+
+/* =========================================================
+   DETAIL LISTS
+   ========================================================= */
+
+.detail{ border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; }
+.detail-row{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding:10px 12px;
+    border-bottom:1px solid var(--line);
+    font-size:11.5px;
+}
+.detail-row:last-child{ border-bottom:0; }
+.detail-label{ color:var(--text-mute); }
+.detail-value{ color:var(--text); font-weight:600; text-align:right; }
+
+.note{
+    margin-top:12px;
+    padding:11px 12px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    color:var(--text-soft);
+    font-size:10.5px;
+    line-height:1.6;
+}
+.note strong{ color:var(--navy); }
+
+/* =========================================================
+   MAP
+   ========================================================= */
+
+.map-wrap{
+    height:366px;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    background:#e9eef1;
+}
+.map{ width:100%; height:100%; }
+.leaflet-container{ font-family:"Public Sans", Arial, sans-serif; }
+.leaflet-popup-content{ font-size:11.5px; line-height:1.6; }
+.leaflet-popup-content b{ color:var(--navy); }
+
+/* =========================================================
+   ENVIRONMENTAL / DRIFT ROWS
+   ========================================================= */
+
+.env-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:11.5px;
+}
+.env-row:last-child{ border-bottom:0; }
+.env-label{ color:var(--text-mute); }
+.env-value{ color:var(--text); font-weight:600; text-align:right; }
+.not-connected{ color:var(--amber); font-weight:500; }
+
+/* =========================================================
+   BOTTOM AREA
+   ========================================================= */
+
+.bottom{ display:grid; grid-template-columns:minmax(0,2fr) minmax(280px,1fr); gap:13px; margin-top:13px; }
+
+/* =========================================================
+   TABLE
+   ========================================================= */
+
+.table-card{ padding:16px; overflow-x:auto; }
+.table-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+    padding-bottom:11px;
+    border-bottom:1px solid var(--line);
+}
+.table-title{ color:var(--navy); font-size:12.5px; font-weight:700; }
+.table-caption{ color:var(--text-mute); font-size:10.5px; }
+
+table{ width:100%; border-collapse:collapse; font-size:11.5px; }
+th{
+    padding:9px 10px;
+    background:var(--surface-2);
+    border-bottom:1px solid var(--line-strong);
+    color:var(--text-mute);
+    text-align:left;
+    font-size:9.5px;
+    font-weight:700;
+    letter-spacing:.3px;
+    white-space:nowrap;
+}
+td{
+    padding:10px 10px;
+    border-bottom:1px solid var(--line);
+    color:var(--text);
+    white-space:nowrap;
+}
+tbody tr{ transition:background .12s var(--ease); }
+tbody tr:hover{ background:var(--surface-2); }
+
+.mmsi{ color:var(--navy); font-weight:600; }
+.score{ color:var(--green); font-weight:700; }
+.score.high{ color:var(--red); }
+.score-medium{ color:var(--amber); font-weight:700; }
+
+.ais-row{ cursor:pointer; }
+.ais-row::after{ content:""; }
+.ais-row:hover td{ background:#f4f8fa; }
+
+
+.map-legend{
+    position:absolute;
+    right:12px;
+    bottom:12px;
+    z-index:900;
+    min-width:170px;
+    padding:10px 11px;
+    background:rgba(255,255,255,.96);
+    border:1px solid var(--line-strong);
+    border-radius:7px;
+    box-shadow:0 5px 18px rgba(10,35,55,.12);
+    font-size:9.5px;
+    color:var(--text-soft);
+}
+.map-legend-title{
+    margin-bottom:7px;
+    color:var(--navy-deep);
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.55px;
+    text-transform:uppercase;
+}
+.map-legend-row{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin:5px 0;
+}
+.legend-dot{
+    width:9px;
+    height:9px;
+    flex:0 0 9px;
+    border-radius:50%;
+    border:1px solid #fff;
+    box-shadow:0 0 0 1px rgba(20,40,55,.18);
+}
+.legend-dot.origin{background:#ac3b3b;}
+.legend-dot.high{background:#ac3b3b;}
+.legend-dot.medium{background:#a8690c;}
+.legend-dot.low{background:#0d7a8a;}
+.legend-line{
+    width:18px;
+    height:0;
+    border-top:2px dashed #0b3b63;
+    flex:0 0 18px;
+}
+.map-shell{
+    position:relative;
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    border-radius:7px;
+}
+
+.evidence-overlay{
+    position:fixed;
+    inset:0;
+    z-index:5000;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:22px;
+    background:rgba(8,28,44,.34);
+    backdrop-filter:blur(3px);
+}
+.evidence-overlay.open{ display:flex; }
+
+.evidence-dialog{
+    width:min(620px, 100%);
+    max-height:90vh;
+    overflow:auto;
+    background:#fff;
+    border:1px solid var(--line-strong);
+    border-radius:10px;
+    box-shadow:0 24px 70px rgba(10,35,55,.20);
+}
+
+.evidence-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    padding:18px 20px;
+    border-bottom:1px solid var(--line);
+}
+.evidence-kicker{
+    color:var(--text-mute);
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+}
+.evidence-title{
+    margin:4px 0 0;
+    color:var(--navy-deep);
+    font-size:16px;
+    font-weight:700;
+}
+.evidence-close{
+    border:1px solid var(--line);
+    background:var(--surface-2);
+    color:var(--text-mute);
+    width:30px;
+    height:30px;
+    border-radius:5px;
+    cursor:pointer;
+    font-size:16px;
+}
+.evidence-close:hover{ color:var(--navy); }
+
+.evidence-body{ padding:18px 20px 20px; }
+
+.evidence-score{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    gap:12px;
+    padding:13px 14px;
+    margin-bottom:14px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    border-radius:7px;
+}
+.evidence-score-label{
+    color:var(--text-mute);
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    font-weight:700;
+}
+.evidence-score-value{
+    color:var(--navy-deep);
+    font-size:22px;
+    font-weight:800;
+}
+
+.evidence-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+}
+.evidence-item{
+    padding:11px 12px;
+    border:1px solid var(--line);
+    border-radius:6px;
+}
+.evidence-item span{
+    display:block;
+    color:var(--text-mute);
+    font-size:9.5px;
+    margin-bottom:4px;
+}
+.evidence-item strong{
+    color:var(--text);
+    font-size:12px;
+}
+.evidence-section{
+    margin-top:14px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+}
+.evidence-section-title{
+    color:var(--navy);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.4px;
+    text-transform:uppercase;
+    margin-bottom:8px;
+}
+.evidence-check{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    padding:7px 0;
+    color:var(--text-soft);
+    font-size:10.5px;
+    line-height:1.45;
+}
+.evidence-check .mark{
+    width:15px;
+    height:15px;
+    flex:0 0 15px;
+    display:grid;
+    place-items:center;
+    border:1px solid #a9c7b4;
+    border-radius:50%;
+    color:var(--green);
+    font-size:9px;
+    font-weight:800;
+}
+.evidence-disclaimer{
+    margin-top:14px;
+    padding:10px 11px;
+    border-left:3px solid var(--amber);
+    background:#faf7ef;
+    color:var(--text-soft);
+    font-size:10px;
+    line-height:1.55;
+}
+
+@media (max-width:700px){
+    .evidence-grid{ grid-template-columns:1fr; }
+}
+
+/* =========================================================
+   PREDICTION SUMMARY
+   ========================================================= */
+
+.summary-row{
+    display:flex;
+    justify-content:space-between;
+    gap:15px;
+    padding:10px 0;
+    border-bottom:1px solid var(--line);
+    font-size:11.5px;
+}
+.summary-row:last-of-type{ border-bottom:0; }
+.summary-label{ color:var(--text-mute); }
+.summary-value{ color:var(--text); font-weight:600; text-align:right; }
+
+/* =========================================================
+   MODEL PERFORMANCE
+   ========================================================= */
+
+.model-cards{ display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; margin-bottom:13px; }
+.model-card{ padding:16px; }
+.model-card-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.model-card-name{ color:var(--navy-deep); font-size:13px; font-weight:700; }
+.model-card-tag{ font-size:8.5px; font-weight:700; letter-spacing:.3px; padding:2px 7px; border-radius:2px; white-space:nowrap; }
+.model-card-tag.teal{ background:var(--teal-light); color:var(--teal); }
+.model-card-tag.purple{ background:var(--purple-light); color:var(--purple); }
+.model-card-tag.amber{ background:var(--amber-light); color:var(--amber); }
+.model-card-desc{ margin-top:8px; color:var(--text-soft); font-size:11px; line-height:1.55; }
+.model-card-stat{ margin-top:12px; display:flex; justify-content:space-between; align-items:baseline; padding-top:10px; border-top:1px solid var(--line); }
+.model-card-stat .num{ font-family:"IBM Plex Mono", monospace; font-size:18px; font-weight:700; color:var(--navy-deep); }
+.model-card-stat .lbl{ font-size:10px; color:var(--text-mute); }
+
+.chart-grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.chart-panel{ padding:16px; }
+.chart-panel-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px; }
+.chart-panel-title{ color:var(--navy); font-size:12px; font-weight:700; }
+.chart-panel-caption{ color:var(--text-mute); font-size:10.5px; margin-top:2px; }
+.chart-wrap{ height:230px; margin-top:10px; position:relative; }
+.chart-wrap canvas{ width:100% !important; height:100% !important; }
+
+.confmat-wrap{ display:flex; gap:20px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+.confmat{ border-collapse:collapse; font-size:11.5px; }
+.confmat th{ padding:8px 14px; font-size:9.5px; color:var(--text-mute); font-weight:700; background:transparent; border:none; }
+.confmat td{ padding:11px 13px; text-align:center; font-family:"IBM Plex Mono", monospace; font-weight:700; font-size:15px; border:1px solid var(--line); white-space:nowrap; }
+.confmat td.correct{ background:var(--green-light); color:var(--green); }
+.confmat td.wrong{ background:var(--red-light); color:var(--red); }
+.confmat-axis{ font-size:9px; color:var(--text-mute); font-weight:700; letter-spacing:.3px; }
+
+.confmat-stats{ display:flex; flex-direction:column; gap:8px; min-width:150px; }
+.confmat-stat-row{ display:flex; justify-content:space-between; gap:14px; font-size:11.5px; padding:6px 0; border-bottom:1px solid var(--line); }
+.confmat-stat-row:last-child{ border-bottom:0; }
+.confmat-stat-row .v{ font-family:"IBM Plex Mono", monospace; font-weight:700; color:var(--navy-deep); }
+
+/* =========================================================
+   EMPTY / ERROR / SKELETON
+   ========================================================= */
+
+.skeleton{ padding:4px 0; }
+.skel-block{
+    background:linear-gradient(90deg, var(--surface-2) 25%, #f0f2f3 37%, var(--surface-2) 63%);
+    background-size:400% 100%;
+    animation:shimmer 1.4s ease infinite;
+    border-radius:var(--radius);
+}
+@keyframes shimmer{ 0%{ background-position:100% 0; } 100%{ background-position:0 0; } }
+
+.empty{ padding:44px; text-align:center; color:var(--text-mute); font-size:12.5px; }
+
+.error{
+    padding:17px 18px;
+    background:var(--red-light);
+    border:1px solid #e6c2c4;
+    border-left:3px solid var(--red);
+    border-radius:var(--radius);
+    color:#7d3336;
+    font-size:12px;
+    line-height:1.65;
+}
+.error strong{ color:#652326; }
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
+
+.footer{
+    margin-top:26px;
+    padding-top:14px;
+    border-top:1px solid var(--line);
+    display:flex;
+    justify-content:space-between;
+    gap:20px;
+    color:var(--text-mute);
+    font-size:10px;
+    line-height:1.6;
+}
+.footer strong{ color:var(--text-soft); }
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:1200px){
+    .sidebar{ width:214px; }
+    .main{ width:calc(100% - 214px); margin-left:214px; }
+    .grid4{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .row{ grid-template-columns:1fr; }
+    .map-wrap{ height:400px; }
+    .model-cards{ grid-template-columns:1fr; }
+    .chart-grid{ grid-template-columns:1fr; }
+}
+
+@media(max-width:850px){
+    .sidebar{ display:none; }
+    .main{ width:100%; margin-left:0; }
+    .header{ padding:16px; }
+    .content{ padding:16px 14px 30px; }
+    .bottom{ grid-template-columns:1fr; }
+    .header-right{ flex-direction:column; align-items:flex-end; gap:6px; }
+}
+
+@media(max-width:600px){
+    .header{ align-items:flex-start; flex-direction:column; }
+    .header-right{ align-items:flex-start; }
+    .grid4{ grid-template-columns:1fr; }
+    .metric{ min-height:96px; }
+    .map-wrap{ height:320px; }
+    .footer{ flex-direction:column; }
+    .confmat-wrap{ flex-direction:column; align-items:flex-start; }
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="evidence-overlay" id="evidence-overlay" onclick="handleEvidenceOverlay(event)"></div>
+
+
+<div class="gov-strip"><span></span><span></span><span></span></div>
+
+<div class="layout">
+
+<!-- =======================================================
+     SIDEBAR
+     ======================================================= -->
+
+<aside class="sidebar">
+
+    <div class="brand">
+        <div class="brand-mark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 3v3M12 18v3M3 12h3M18 12h3"></path>
+                <path d="M12 8l2 4-2 4-2-4z"></path>
+            </svg>
+        </div>
+        <div class="brand-text">
+            <small>Maritime Intelligence</small>
+            <strong>Aesteria</strong>
+        </div>
+    </div>
+
+    <nav class="nav">
+
+        <div class="nav-label">Navigation</div>
+
+        <a class="active" href="#top">
+            <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"></rect><rect x="14" y="3" width="7" height="5" rx="1"></rect><rect x="14" y="12" width="7" height="9" rx="1"></rect><rect x="3" y="16" width="7" height="5" rx="1"></rect></svg>
+            </span>
+            Dashboard
+        </a>
+
+        <a href="#monitoring">
+            <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 15c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0"></path><path d="M2 9c1.5-2 3.5-2 5 0s3.5 2 5 0 3.5-2 5 0 3.5 2 5 0"></path></svg>
+            </span>
+            Monitoring
+        </a>
+
+        <a href="#prediction">
+            <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg>
+            </span>
+            Prediction
+        </a>
+
+        <a href="#map-section">
+            <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-7.2-7-12a7 7 0 0 1 14 0c0 4.8-7 12-7 12z"></path><circle cx="12" cy="9" r="2.4"></circle></svg>
+            </span>
+            Maritime Map
+        </a>
+
+        <a href="#reports">
+            <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V7l8-4 8 4v12"></path><path d="M4 19h16"></path><path d="M9 19v-6h6v6"></path></svg>
+            </span>
+            AIS Attribution
+        </a>
+
+        <a href="#model-performance">
+            <span class="nav-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="M7 15l3.5-5 3 3L19 6"></path></svg>
+            </span>
+            Model Performance
+        </a>
+
+    </nav>
+
+    <div class="system-status">
+        <div class="system-status-title">
+            <span class="status-dot"></span>
+            System operational
+        </div>
+        <small>
+            AIS attribution service is available.
+            Data source and model outputs are marked
+            according to their current availability.
+        </small>
+    </div>
+
+</aside>
+
+<!-- =======================================================
+     MAIN
+     ======================================================= -->
+
+<main class="main" id="top">
+
+<header class="header">
+
+    <div class="header-left">
+        <div class="header-kicker">Maritime Oil Spill Intelligence System</div>
+        <h1>Oil Spill Monitoring and Prediction</h1>
+        <p class="header-subtitle">Integrated spill detection, drift analysis and AIS vessel attribution</p>
+    </div>
+
+    <div class="header-right">
+        <div class="live-status">
+            <span class="status-dot"></span>
+            AIS Attribution Online
+        </div>
+        <div class="clock" id="clock">Loading</div>
+    </div>
+
+</header>
+
+<section class="content" id="monitoring">
+
+    <div id="dashboard"></div>
+
+    <!-- ===================================================
+         MODEL PERFORMANCE
+         =================================================== -->
+
+    <div class="section-heading" id="model-performance">
+        <div>
+            <h2>Model Performance</h2>
+            <p>Recorded results from the DeepLabV3+ oil-spill segmentation run</p>
+        </div>
+        <span class="section-badge"><span class="dot"></span>Recorded model output</span>
+    </div>
+
+    <div class="model-cards">
+
+        <div class="card model-card">
+            <div class="model-card-top">
+                <span class="model-card-name">DeepLabV3+</span>
+                <span class="model-card-tag teal">Oil Spill Segmentation</span>
+            </div>
+            <div class="model-card-desc">Pixel-wise five-class segmentation using a ResNet50 backbone with ASPP. Trained with Dice loss plus categorical focal loss.</div>
+            <div class="model-card-stat"><span class="num">92.88%</span><span class="lbl">Validation accuracy</span></div>
+        </div>
+
+        <div class="card model-card">
+            <div class="model-card-top">
+                <span class="model-card-name">Segmentation Quality</span>
+                <span class="model-card-tag purple">Weighted Metrics</span>
+            </div>
+            <div class="model-card-desc">Evaluation on the held-out test set using weighted precision, recall and F1 across the five segmentation classes.</div>
+            <div class="model-card-stat"><span class="num">92.78%</span><span class="lbl">Weighted F1 score</span></div>
+        </div>
+
+        <div class="card model-card">
+            <div class="model-card-top">
+                <span class="model-card-name">Integrated Detection</span>
+                <span class="model-card-tag amber">Prototype Pipeline</span>
+            </div>
+            <div class="model-card-desc">The trained segmentation output is converted into spill events using an oil-pixel fraction threshold before drift simulation.</div>
+            <div class="model-card-stat"><span class="num">36 / 110</span><span class="lbl">Spill events detected</span></div>
+        </div>
+
+    </div>
+
+    <div class="chart-grid">
+
+        <div class="card chart-panel">
+            <div class="chart-panel-header">
+                <div>
+                    <div class="chart-panel-title">DeepLabV3+ Training &amp; Validation Loss</div>
+                    <div class="chart-panel-caption">10 recorded training epochs</div>
+                </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-loss"></canvas></div>
+        </div>
+
+        <div class="card chart-panel">
+            <div class="chart-panel-header">
+                <div>
+                    <div class="chart-panel-title">DeepLabV3+ Accuracy</div>
+                    <div class="chart-panel-caption">Training and validation pixel accuracy</div>
+                </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-accuracy"></canvas></div>
+        </div>
+
+        <div class="card chart-panel">
+            <div class="chart-panel-header">
+                <div>
+                    <div class="chart-panel-title">Validation Jaccard Score</div>
+                    <div class="chart-panel-caption">Recorded DeepLabV3+ validation metric</div>
+                </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-jaccard"></canvas></div>
+        </div>
+
+        <div class="card chart-panel">
+            <div class="chart-panel-header">
+                <div>
+                    <div class="chart-panel-title">Integrated Spill Detection Output</div>
+                    <div class="chart-panel-caption">110 test images passed through the detection stage</div>
+                </div>
+            </div>
+            <div class="chart-wrap"><canvas id="chart-detection"></canvas></div>
+        </div>
+
+    </div>
+
+    <div class="card panel" style="margin-top:12px;">
+        <div class="panel-header">
+            <h3 class="panel-title">DeepLabV3+ Pixel Confusion Matrix</h3>
+            <span class="panel-label">Held-out test set, 5 classes</span>
+        </div>
+
+        <div class="confmat-wrap">
+
+            <table class="confmat">
+                <tr>
+                    <th></th>
+                    <th class="confmat-axis">Pred. Class 0</th>
+                    <th class="confmat-axis">Pred. Class 1</th>
+                    <th class="confmat-axis">Pred. Class 2</th>
+                    <th class="confmat-axis">Pred. Class 3</th>
+                    <th class="confmat-axis">Pred. Class 4</th>
+                </tr>
+                <tr>
+                    <th class="confmat-axis">True Class 0</th>
+                    <td class="correct">6,497,651</td>
+                    <td class="wrong">3,298</td>
+                    <td class="wrong">13,087</td>
+                    <td class="wrong">111</td>
+                    <td class="wrong">32,576</td>
+                </tr>
+                <tr>
+                    <th class="confmat-axis">True Class 1</th>
+                    <td class="wrong">40,415</td>
+                    <td class="correct">16,758</td>
+                    <td class="wrong">14,387</td>
+                    <td class="wrong">0</td>
+                    <td class="wrong">520</td>
+                </tr>
+                <tr>
+                    <th class="confmat-axis">True Class 2</th>
+                    <td class="wrong">257,743</td>
+                    <td class="wrong">1,589</td>
+                    <td class="correct">100,792</td>
+                    <td class="wrong">5</td>
+                    <td class="wrong">261</td>
+                </tr>
+                <tr>
+                    <th class="confmat-axis">True Class 3</th>
+                    <td class="wrong">454</td>
+                    <td class="wrong">0</td>
+                    <td class="wrong">0</td>
+                    <td class="correct">174</td>
+                    <td class="wrong">44</td>
+                </tr>
+                <tr>
+                    <th class="confmat-axis">True Class 4</th>
+                    <td class="wrong">71,934</td>
+                    <td class="wrong">0</td>
+                    <td class="wrong">45</td>
+                    <td class="wrong">0</td>
+                    <td class="correct">157,116</td>
+                </tr>
+            </table>
+
+            <div class="confmat-stats">
+                <div class="confmat-stat-row"><span>Validation accuracy</span><span class="v">92.88%</span></div>
+                <div class="confmat-stat-row"><span>Weighted precision</span><span class="v">93.24%</span></div>
+                <div class="confmat-stat-row"><span>Weighted recall</span><span class="v">93.95%</span></div>
+                <div class="confmat-stat-row"><span>Weighted F1</span><span class="v">92.78%</span></div>
+                <div class="confmat-stat-row"><span>Val. Jaccard</span><span class="v">86.82%</span></div>
+            </div>
+
+        </div>
+
+        <div class="note">
+            <strong>Source:</strong> recorded DeepLabV3+ notebook output. The model was trained for 10 epochs with batch size 8, Adam optimizer, Dice loss plus categorical focal loss, and accuracy/Jaccard metrics. In the integrated pipeline, Class 2 is configured as the oil class. The geographic coordinates and timestamps used after detection are explicitly synthetic demonstration metadata.
+        </div>
+    </div>
+
+    <div class="footer">
+        <div><strong>Aesteria</strong> &nbsp;|&nbsp; Maritime Intelligence Prototype</div>
+        <div>Synthetic and demonstration data where indicated</div>
+    </div>
+
+</section>
+
+</main>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" crossorigin=""></script>
+
+<script>
+
+/* =========================================================
+   AESTERIA FRONTEND
+   Backend contract preserved: GET /data/results.json
+   ========================================================= */
+
+const RESULTS_URL = "/data/results.json";
+
+/* ---------------- safe value helpers ---------------- */
+
+function safeNumber(value, fallback = 0){
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+}
+
+function fixed(value, digits = 2, fallback = "N/A"){
+    const n = Number(value);
+    return Number.isFinite(n) ? n.toFixed(digits) : fallback;
+}
+
+function text(value, fallback = "N/A"){
+    return (value === undefined || value === null || value === "") ? fallback : String(value);
+}
+
+function percent(value){
+    const n = safeNumber(value, 0);
+    return (n <= 1 ? n * 100 : n).toFixed(1) + "%";
+}
+
+function formatTime(value){
+    if(!value) return "N/A";
+    const d = new Date(value);
+    if(Number.isNaN(d.getTime())) return String(value);
+    return d.toLocaleString("en-IN", {
+        day:"2-digit", month:"short", year:"numeric",
+        hour:"2-digit", minute:"2-digit", hour12:false,
+        timeZone:"Asia/Kolkata"
+    }) + " IST";
+}
+
+/* ---------------- direction / bearing ---------------- */
+
+function direction(deg){
+    const dirs = ["North","North-East","East","South-East","South","South-West","West","North-West"];
+    const n = ((safeNumber(deg) % 360) + 360) % 360;
+    return dirs[Math.round(n / 45) % 8];
+}
+
+function calculateBearing(lat1, lon1, lat2, lon2){
+    const r = Math.PI / 180;
+    const y = Math.sin((lon2 - lon1) * r) * Math.cos(lat2 * r);
+    const x = Math.cos(lat1 * r) * Math.sin(lat2 * r) -
+              Math.sin(lat1 * r) * Math.cos(lat2 * r) * Math.cos((lon2 - lon1) * r);
+    return ((Math.atan2(y, x) / r) + 360) % 360;
+}
+
+/* ---------------- results / event normalisation ---------------- */
+
+function normaliseResults(data){
+    if(Array.isArray(data)) return data;
+    if(data && Array.isArray(data.events)) return data.events;
+    if(data && Array.isArray(data.results)) return data.results;
+    return [];
+}
+
+function normaliseEvent(raw){
+    const event = raw || {};
+
+    const originLat = safeNumber(event.originLat ?? event.origin_lat ?? event.detectedLat ?? event.detected_lat);
+    const originLon = safeNumber(event.originLon ?? event.origin_lon ?? event.detectedLon ?? event.detected_lon);
+    const forecastLat = safeNumber(event.forecastLat ?? event.forecast_lat, originLat);
+    const forecastLon = safeNumber(event.forecastLon ?? event.forecast_lon, originLon);
+
+    const vessels = Array.isArray(event.vessels) ? event.vessels
+                   : Array.isArray(event.candidates) ? event.candidates
+                   : [];
+
+    return {
+        ...event,
+
+        eventId: text(event.eventId ?? event.event_id, "UNKNOWN"),
+
+        detectedLat: safeNumber(event.detectedLat ?? event.detected_lat, originLat),
+        detectedLon: safeNumber(event.detectedLon ?? event.detected_lon, originLon),
+        detectedTime: event.detectedTime ?? event.detected_time ?? "",
+        detectionConfidence: safeNumber(event.detectionConfidence ?? event.detection_confidence, 0),
+
+        originLat,
+        originLon,
+        originRadiusKm: safeNumber(event.originRadiusKm ?? event.origin_radius_km, 10),
+        originTimeStart: event.originTimeStart ?? event.origin_time_start ?? "",
+        originTimeEnd: event.originTimeEnd ?? event.origin_time_end ?? "",
+
+        forecastLat,
+        forecastLon,
+        forecastRadiusKm: safeNumber(event.forecastRadiusKm ?? event.forecast_radius_km, 10),
+        forecastTime: event.forecastTime ?? event.forecast_time ?? "",
+
+        coordinatesType: text(event.coordinatesType ?? event.coordinates_type, "SYNTHETIC / DEMO"),
+
+        vessels: vessels.map(v => ({
+            ...v,
+            mmsi: text(v.mmsi ?? v.MMSI, "Unknown"),
+            latitude: safeNumber(v.latitude ?? v.lat, originLat),
+            longitude: safeNumber(v.longitude ?? v.lon, originLon),
+            sog: safeNumber(v.sog ?? v.SOG, 0),
+            cog: safeNumber(v.cog ?? v.COG, 0),
+            timestamp: v.timestamp ?? "",
+            distance: safeNumber(v.distance, 0),
+            timeDifference: safeNumber(v.timeDifference ?? v.time_difference, 0),
+            correlationScore: safeNumber(v.correlationScore ?? v.correlation_score ?? v.score, 0)
+        }))
+    };
+}
+
+/* ---------------- map ---------------- */
+
+function createMap(containerId, event){
+
+    const map = L.map(containerId).setView([event.originLat, event.originLon], 8);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    const origin = L.latLng(event.originLat, event.originLon);
+    const forecast = L.latLng(event.forecastLat, event.forecastLon);
+
+    L.circle(origin, {
+        radius: event.originRadiusKm * 1000,
+        color:"#ac3b3b", fillColor:"#ac3b3b", fillOpacity:.08, weight:2
+    }).addTo(map).bindPopup(
+        "<b>Estimated Spill Origin</b><br>" +
+        fixed(event.originLat, 4) + ", " + fixed(event.originLon, 4) +
+        "<br>Search radius: " + fixed(event.originRadiusKm, 1) + " km"
+    );
+
+    L.circleMarker(origin, {
+        radius:7, color:"#ffffff", fillColor:"#ac3b3b", fillOpacity:1, weight:2
+    }).addTo(map).bindPopup("<b>Estimated Spill Origin</b>");
+
+    L.circle(forecast, {
+        radius: event.forecastRadiusKm * 1000,
+        color:"#0d7a8a", fillColor:"#0d7a8a", fillOpacity:.06, dashArray:"6 6", weight:2
+    }).addTo(map);
+
+    L.circleMarker(forecast, {
+        radius:7, color:"#ffffff", fillColor:"#0d7a8a", fillOpacity:1, weight:2
+    }).addTo(map).bindPopup(
+        "<b>Predicted Spill Position</b><br>" +
+        fixed(event.forecastLat, 4) + ", " + fixed(event.forecastLon, 4) +
+        "<br>Forecast time: " + formatTime(event.forecastTime)
+    );
+
+    L.polyline([origin, forecast], { color:"#0b3b63", weight:3, dashArray:"8 7" }).addTo(map);
+
+    const points = [origin, forecast];
+
+    event.vessels.forEach(vessel => {
+        const lat = safeNumber(vessel.latitude, event.originLat);
+        const lon = safeNumber(vessel.longitude, event.originLon);
+        const score = safeNumber(vessel.correlationScore);
+
+        const color = score >= 70 ? "#ac3b3b" : score >= 40 ? "#a8690c" : "#0d7a8a";
+
+        const marker = L.circleMarker([lat, lon], {
+            radius: Math.max(5, Math.min(11, 5 + score / 16)),
+            color:"#ffffff", fillColor:color, fillOpacity:.92, weight:2
+        }).addTo(map);
+
+        const correlationLabel =
+            score >= 70 ? "High correlation" :
+            score >= 40 ? "Medium correlation" :
+            "Lower correlation";
+
+        marker.bindPopup(
+            "<b>MMSI " + text(vessel.mmsi) + "</b><br>" +
+            "<span style='color:#667985'>" + correlationLabel + "</span><br><br>" +
+            "Correlation score: <b>" + fixed(score) + "</b><br>" +
+            "Distance: " + fixed(vessel.distance) + " km<br>" +
+            "Time difference: " + fixed(vessel.timeDifference, 0) + " min<br>" +
+            "SOG: " + fixed(vessel.sog) + " kn<br>" +
+            "COG: " + fixed(vessel.cog) + " degrees<br>" +
+            "AIS time: " + text(formatTime(vessel.timestamp)) +
+            "<br><br><span style='color:#0b3b63'>Select the vessel row below for full evidence.</span>"
+        );
+
+        points.push(L.latLng(lat, lon));
+    });
+
+    if(points.length > 1){
+        map.fitBounds(L.latLngBounds(points), { padding:[25, 25] });
+    }
+
+    setTimeout(() => map.invalidateSize(), 150);
+}
+
+/* ---------------- score class ---------------- */
+
+
+function openEvidence(vessel, event){
+    const overlay = document.getElementById("evidence-overlay");
+    if(!overlay) return;
+
+    const score = safeNumber(vessel.correlationScore);
+    const distance = safeNumber(vessel.distance);
+    const timeDiff = safeNumber(vessel.timeDifference);
+
+    const spatialStatus = distance <= safeNumber(event.originRadiusKm)
+        ? "Within the origin search radius."
+        : "Outside the origin search radius.";
+
+    const timeStatus = timeDiff <= 60
+        ? "Close temporal alignment with the estimated spill window."
+        : "Temporal separation is larger than one hour.";
+
+    overlay.innerHTML = `
+        <div class="evidence-dialog" role="dialog" aria-modal="true" aria-labelledby="evidence-title">
+            <div class="evidence-head">
+                <div>
+                    <div class="evidence-kicker">AIS Attribution Evidence</div>
+                    <h3 class="evidence-title" id="evidence-title">MMSI ${text(vessel.mmsi)}</h3>
+                </div>
+                <button class="evidence-close" type="button" onclick="closeEvidence()" aria-label="Close">×</button>
+            </div>
+
+            <div class="evidence-body">
+                <div class="evidence-score">
+                    <span class="evidence-score-label">Correlation score</span>
+                    <strong class="evidence-score-value">${fixed(score)} / 100</strong>
+                </div>
+
+                <div class="evidence-grid">
+                    <div class="evidence-item">
+                        <span>Distance from origin</span>
+                        <strong>${fixed(distance)} km</strong>
+                    </div>
+                    <div class="evidence-item">
+                        <span>Time difference</span>
+                        <strong>${fixed(timeDiff, 0)} min</strong>
+                    </div>
+                    <div class="evidence-item">
+                        <span>Speed over ground</span>
+                        <strong>${fixed(vessel.sog)} kn</strong>
+                    </div>
+                    <div class="evidence-item">
+                        <span>Course over ground</span>
+                        <strong>${fixed(vessel.cog)}&deg;</strong>
+                    </div>
+                    <div class="evidence-item">
+                        <span>AIS position</span>
+                        <strong>${fixed(vessel.latitude, 4)}&deg;, ${fixed(vessel.longitude, 4)}&deg;</strong>
+                    </div>
+                    <div class="evidence-item">
+                        <span>AIS timestamp</span>
+                        <strong>${formatTime(vessel.timestamp)}</strong>
+                    </div>
+                </div>
+
+                <div class="evidence-section">
+                    <div class="evidence-section-title">Spatial and temporal checks</div>
+                    <div class="evidence-check">
+                        <span class="mark">✓</span>
+                        <span>${spatialStatus}</span>
+                    </div>
+                    <div class="evidence-check">
+                        <span class="mark">✓</span>
+                        <span>${timeStatus}</span>
+                    </div>
+                    <div class="evidence-check">
+                        <span class="mark">✓</span>
+                        <span>The score combines distance and time proximity using the current attribution algorithm.</span>
+                    </div>
+                </div>
+
+                <div class="evidence-disclaimer">
+                    This evidence supports candidate-vessel analysis only. The correlation score is not proof of responsibility and should be reviewed with additional operational evidence.
+                </div>
+            </div>
+        </div>
+    `;
+
+    overlay.classList.add("open");
+}
+
+function closeEvidence(){
+    const overlay = document.getElementById("evidence-overlay");
+    if(overlay) overlay.classList.remove("open");
+}
+
+function handleEvidenceOverlay(event){
+    if(event.target.id === "evidence-overlay"){
+        closeEvidence();
+    }
+}
+
+document.addEventListener("keydown", event => {
+    if(event.key === "Escape") closeEvidence();
+});
+
+/* ---------------- skeleton ---------------- */
+
+function renderSkeleton(){
+    const root = document.getElementById("dashboard");
+    root.innerHTML = `
+        <div class="skeleton">
+            <div class="skel-block" style="height:34px;width:60%;margin-bottom:18px;"></div>
+            <div class="grid4">
+                <div class="skel-block" style="height:110px;"></div>
+                <div class="skel-block" style="height:110px;"></div>
+                <div class="skel-block" style="height:110px;"></div>
+                <div class="skel-block" style="height:110px;"></div>
+            </div>
+            <div class="skel-block" style="height:400px;margin-top:16px;"></div>
+        </div>
+    `;
+}
+
+/* ---------------- dashboard render ---------------- */
+
+function renderDashboard(events){
+
+    const root = document.getElementById("dashboard");
+
+    if(!events.length){
+        root.innerHTML = `<div class="card empty">No spill events were returned by the Aesteria backend.</div>`;
+        return;
+    }
+
+    let html = "";
+
+    events.forEach((raw, index) => {
+
+        const event = normaliseEvent(raw);
+        const bearing = calculateBearing(event.originLat, event.originLon, event.forecastLat, event.forecastLon);
+        const dir = direction(bearing);
+        const area = Math.PI * event.originRadiusKm * event.originRadiusKm;
+        const best = event.vessels.length
+            ? Math.max(...event.vessels.map(v => safeNumber(v.correlationScore)))
+            : 0;
+
+        html += `
+
+        <div class="status">
+            <strong>Aesteria</strong>
+            <span class="sep">&bull;</span>
+            ${text(event.coordinatesType, "SYNTHETIC / DEMO")}
+            <span class="sep">&bull;</span>
+            Event <span class="event-code mono">${text(event.eventId)}</span>
+            <span class="sep">&bull;</span>
+            AIS attribution active
+        </div>
+
+        <div class="section-heading">
+            <div>
+                <h2>Incident Overview</h2>
+                <p>Current detection and prediction status</p>
+            </div>
+        </div>
+
+        <div class="grid4">
+
+            <div class="card metric green-card">
+                <div class="metric-label">Spill Detection</div>
+                <div class="metric-value green" style="font-family:'Public Sans'">Confirmed</div>
+                <div class="metric-meta">Model confidence: ${percent(event.detectionConfidence)}</div>
+            </div>
+
+            <div class="card metric blue-card">
+                <div class="metric-label">Estimated Area</div>
+                <div class="metric-value">${fixed(area, 1)} km&sup2;</div>
+                <div class="metric-meta">Search area around origin</div>
+            </div>
+
+            <div class="card metric blue-card">
+                <div class="metric-label">Drift Direction</div>
+                <div class="metric-value" style="font-family:'Public Sans'">${dir}</div>
+                <div class="metric-meta">Bearing: ${fixed(bearing, 0)} degrees</div>
+            </div>
+
+            <div class="card metric neutral-card">
+                <div class="metric-label">Forecast Time</div>
+                <div class="metric-value" style="font-size:15px;font-family:'Public Sans'">${formatTime(event.forecastTime)}</div>
+                <div class="metric-meta">Model forecast</div>
+            </div>
+
+        </div>
+
+        <div class="row">
+
+            <div class="card panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Incident Location</h3>
+                    <span class="panel-label">Coordinates</span>
+                </div>
+                <div class="detail">
+                    <div class="detail-row"><span class="detail-label">Latitude</span><span class="detail-value mono">${fixed(event.detectedLat, 4)}&deg;</span></div>
+                    <div class="detail-row"><span class="detail-label">Longitude</span><span class="detail-value mono">${fixed(event.detectedLon, 4)}&deg;</span></div>
+                    <div class="detail-row"><span class="detail-label">Detection Time</span><span class="detail-value">${formatTime(event.detectedTime)}</span></div>
+                    <div class="detail-row"><span class="detail-label">Event ID</span><span class="detail-value mono">${text(event.eventId)}</span></div>
+                </div>
+                <div class="note"><strong>Data classification:</strong> ${text(event.coordinatesType, "SYNTHETIC / DEMO")} coordinates supplied by the current demonstration pipeline.</div>
+            </div>
+
+            <div class="card panel" id="map-section">
+                <div class="panel-header">
+                    <h3 class="panel-title">Maritime Tracking Map</h3>
+                    <span class="panel-label">Spill and AIS</span>
+                </div>
+                <div class="map-wrap"><div class="map-shell">
+                    <div class="map" id="map-${index}" aria-label="Spill origin, forecast and AIS vessel map"></div>
+                    <div class="map-legend">
+                        <div class="map-legend-title">Map legend</div>
+                        <div class="map-legend-row"><span class="legend-dot origin"></span><span>Estimated spill origin</span></div>
+                        <div class="map-legend-row"><span class="legend-dot high"></span><span>High correlation vessel</span></div>
+                        <div class="map-legend-row"><span class="legend-dot medium"></span><span>Medium correlation vessel</span></div>
+                        <div class="map-legend-row"><span class="legend-dot low"></span><span>Lower correlation vessel</span></div>
+                        <div class="map-legend-row"><span class="legend-line"></span><span>Origin to forecast</span></div>
+                    </div>
+                </div></div>
+            </div>
+
+            <div class="card panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Drift Information</h3>
+                    <span class="panel-label">Forecast</span>
+                </div>
+                <div class="env-row"><span class="env-label">Drift Bearing</span><span class="env-value mono">${fixed(bearing, 0)}&deg;</span></div>
+                <div class="env-row"><span class="env-label">Movement</span><span class="env-value">${dir}</span></div>
+                <div class="env-row"><span class="env-label">Forecast Latitude</span><span class="env-value mono">${fixed(event.forecastLat, 4)}&deg;</span></div>
+                <div class="env-row"><span class="env-label">Forecast Longitude</span><span class="env-value mono">${fixed(event.forecastLon, 4)}&deg;</span></div>
+                <div class="env-row"><span class="env-label">Wind Sensor</span><span class="env-value not-connected">Not connected</span></div>
+                <div class="env-row"><span class="env-label">Ocean Current</span><span class="env-value not-connected">Not connected</span></div>
+            </div>
+
+        </div>
+
+        <div class="bottom" id="reports">
+
+            <div class="card table-card">
+                <div class="table-header">
+                    <div>
+                        <div class="table-title">AIS Vessel Attribution</div>
+                        <div class="table-caption">Candidate vessels associated with the detected spill event</div>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>MMSI</th>
+                            <th>Distance</th>
+                            <th>Time Difference</th>
+                            <th>SOG</th>
+                            <th>COG</th>
+                            <th>Attribution Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${
+                            event.vessels.length
+                            ? event.vessels.map(v => {
+                                const score = safeNumber(v.correlationScore);
+                                return `
+                                <tr class="ais-row" onclick='openEvidence(${JSON.stringify(v)}, ${JSON.stringify(event)})' title="View attribution evidence">
+                                    <td class="mmsi mono">${text(v.mmsi)}</td>
+                                    <td class="mono">${fixed(v.distance)} km</td>
+                                    <td class="mono">${fixed(v.timeDifference, 0)} min</td>
+                                    <td class="mono">${fixed(v.sog)} kn</td>
+                                    <td class="mono">${fixed(v.cog)}&deg;</td>
+                                    <td class="${score >= 70 ? "score high" : score >= 40 ? "score-medium" : "score"} mono">${fixed(score)}</td>
+                                </tr>`;
+                            }).join("")
+                            : `<tr><td colspan="6">No candidate vessels matched this event.</td></tr>`
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card panel" id="prediction">
+                <div class="panel-header">
+                    <h3 class="panel-title">Prediction Summary</h3>
+                    <span class="panel-label">Analysis</span>
+                </div>
+                <div class="summary-row"><span class="summary-label">Drift Direction</span><span class="summary-value">${dir} (${fixed(bearing, 0)}&deg;)</span></div>
+                <div class="summary-row"><span class="summary-label">Forecast Radius</span><span class="summary-value mono">${fixed(event.forecastRadiusKm, 1)} km</span></div>
+                <div class="summary-row"><span class="summary-label">Candidate Vessels</span><span class="summary-value mono">${event.vessels.length}</span></div>
+                <div class="summary-row"><span class="summary-label">Top Attribution Score</span><span class="summary-value mono">${fixed(best)}</span></div>
+                <div class="summary-row"><span class="summary-label">Forecast Time</span><span class="summary-value">${formatTime(event.forecastTime)}</span></div>
+                <div class="note">AIS attribution uses spatial and temporal proximity to identify candidate vessels.<br><br>The attribution score is an analytical signal and should not be interpreted as proof of responsibility.</div>
+            </div>
+
+        </div>
+        `;
+    });
+
+    root.classList.add("fade-in");
+    root.innerHTML = html;
+
+    events.forEach((raw, index) => createMap("map-" + index, normaliseEvent(raw)));
+}
+
+/* ---------------- load results ---------------- */
+
+async function loadResults(){
+
+    const root = document.getElementById("dashboard");
+
+    try{
+        const response = await fetch(RESULTS_URL + "?t=" + Date.now());
+        if(!response.ok) throw new Error("Backend returned HTTP " + response.status);
+
+        const data = await response.json();
+        const events = normaliseResults(data);
+        renderDashboard(events);
+
+    } catch(error){
+        root.classList.remove("fade-in");
+        root.innerHTML = `
+            <div class="card error">
+                <strong>Aesteria dashboard could not retrieve backend results.</strong>
+                <br><br>
+                ${text(error.message)}
+                <br><br>
+                Verify that ApiServer is running and that data/results.json is available through the backend server.
+            </div>
+        `;
+    }
+}
+
+/* ---------------- clock ---------------- */
+
+function updateClock(){
+    const clock = document.getElementById("clock");
+    clock.textContent = new Date().toLocaleString("en-IN", {
+        day:"2-digit", month:"short", year:"numeric",
+        hour:"2-digit", minute:"2-digit", hour12:false,
+        timeZone:"Asia/Kolkata"
+    }) + " IST";
+}
+
+updateClock();
+setInterval(updateClock, 30000);
+
+/* =========================================================
+   MODEL PERFORMANCE CHARTS
+   Illustrative sample training run — swap these arrays for
+   real training logs / evaluation output when available.
+   ========================================================= */
+
+function renderModelCharts(){
+
+    const gridColor = "#eceef0";
+    const fontFamily = "Public Sans";
+
+    Chart.defaults.font.family = fontFamily;
+    Chart.defaults.font.size = 10.5;
+    Chart.defaults.color = "#7c8a94";
+
+    const epochs = [1,2,3,4,5,6,7,8,9,10];
+
+    /* ---- recorded DeepLabV3+ loss ---- */
+    const trainLoss = [0.9464,0.9304,0.9247,0.9169,0.9092,0.9078,0.9062,0.9052,0.8999,0.9010];
+    const valLoss   = [1.0475,1.1328,0.9799,1.0476,0.9925,0.9766,0.9887,0.9806,0.9411,0.9401];
+
+    new Chart(document.getElementById("chart-loss"), {
+        type:"line",
+        data:{
+            labels:epochs,
+            datasets:[
+                {
+                    label:"Training loss",
+                    data:trainLoss,
+                    borderColor:"#0b3b63",
+                    backgroundColor:"transparent",
+                    borderWidth:2,
+                    pointRadius:3,
+                    pointHoverRadius:4,
+                    tension:.2
+                },
+                {
+                    label:"Validation loss",
+                    data:valLoss,
+                    borderColor:"#0d7a8a",
+                    backgroundColor:"transparent",
+                    borderWidth:2,
+                    pointRadius:3,
+                    pointHoverRadius:4,
+                    tension:.2,
+                    borderDash:[5,3]
+                }
+            ]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+                legend:{position:"bottom",labels:{boxWidth:10,boxHeight:2,padding:12}}
+            },
+            scales:{
+                x:{title:{display:true,text:"Epoch"},grid:{display:false}},
+                y:{title:{display:true,text:"Loss"},grid:{color:gridColor},beginAtZero:false}
+            }
+        }
+    });
+
+    /* ---- recorded DeepLabV3+ accuracy ---- */
+    const trainAccuracy = [88.81,91.16,91.90,92.26,93.40,93.03,93.56,93.40,94.08,93.96];
+    const valAccuracy   = [89.67,4.81,89.67,89.47,88.08,92.06,87.13,90.30,93.27,92.88];
+
+    new Chart(document.getElementById("chart-accuracy"), {
+        type:"line",
+        data:{
+            labels:epochs,
+            datasets:[
+                {
+                    label:"Training accuracy",
+                    data:trainAccuracy,
+                    borderColor:"#2c7a4b",
+                    backgroundColor:"transparent",
+                    borderWidth:2,
+                    pointRadius:3,
+                    pointHoverRadius:4,
+                    tension:.2
+                },
+                {
+                    label:"Validation accuracy",
+                    data:valAccuracy,
+                    borderColor:"#a8690c",
+                    backgroundColor:"transparent",
+                    borderWidth:2,
+                    pointRadius:3,
+                    pointHoverRadius:4,
+                    tension:.2,
+                    borderDash:[5,3]
+                }
+            ]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+                legend:{position:"bottom",labels:{boxWidth:10,boxHeight:2,padding:12}}
+            },
+            scales:{
+                x:{title:{display:true,text:"Epoch"},grid:{display:false}},
+                y:{title:{display:true,text:"Accuracy (%)"},grid:{color:gridColor},min:0,max:100}
+            }
+        }
+    });
+
+    /* ---- recorded validation Jaccard ---- */
+    const valJaccard = [82.40,5.19,61.30,81.91,67.32,82.68,74.57,83.41,87.70,86.82];
+
+    new Chart(document.getElementById("chart-jaccard"), {
+        type:"line",
+        data:{
+            labels:epochs,
+            datasets:[
+                {
+                    label:"Validation Jaccard",
+                    data:valJaccard,
+                    borderColor:"#6a4c93",
+                    backgroundColor:"rgba(106,76,147,.07)",
+                    borderWidth:2,
+                    pointRadius:3,
+                    pointHoverRadius:4,
+                    tension:.2,
+                    fill:true
+                }
+            ]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+                legend:{position:"bottom",labels:{boxWidth:10,boxHeight:2,padding:12}}
+            },
+            scales:{
+                x:{title:{display:true,text:"Epoch"},grid:{display:false}},
+                y:{title:{display:true,text:"Jaccard (%)"},grid:{color:gridColor},min:0,max:100}
+            }
+        }
+    });
+
+    /* ---- recorded integrated detection output ---- */
+    new Chart(document.getElementById("chart-detection"), {
+        type:"bar",
+        data:{
+            labels:["Oil spill detected","No spill"],
+            datasets:[{
+                label:"Test images",
+                data:[36,74],
+                backgroundColor:["#2c7a4b","#c9d0d4"],
+                borderRadius:2
+            }]
+        },
+        options:{
+            responsive:true,
+            maintainAspectRatio:false,
+            plugins:{
+                legend:{display:false}
+            },
+            scales:{
+                x:{title:{display:true,text:"Detection result"},grid:{display:false}},
+                y:{title:{display:true,text:"Test images"},grid:{color:gridColor},beginAtZero:true}
+            }
+        }
+    });
+}
+
+/* ---------------- start ---------------- */
+
+renderSkeleton();
+loadResults();
+renderModelCharts();
+
+</script>
+
+</body>
+</html>
