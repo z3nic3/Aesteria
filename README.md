@@ -14,6 +14,7 @@ Spill Detection → Drift / Origin Estimation → AIS Search → Distance + Time
 
 ## Project Structure
 
+```
 Aesteria/
 ├── model/
 │   └── notebook.ipynb
@@ -43,6 +44,7 @@ Aesteria/
 │
 ├── Dockerfile
 └── README.md
+```
 
 
 ## How It Works
