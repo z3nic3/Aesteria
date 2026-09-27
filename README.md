@@ -6,12 +6,7 @@ Aesteria is a Smart India Hackathon prototype for analysing suspected marine oil
 
 The prototype pipeline is:
 
-Spill Detection
-→ Drift / Origin Estimation
-→ AIS Search
-→ Distance + Time Correlation
-→ Ranked Vessel Candidates
-→ Evidence Dashboard
+Spill Detection → Drift / Origin Estimation → AIS Search → Distance + Time Correlation → Ranked Vessel Candidates → Evidence Dashboard
 
 > **Prototype Mode:** This demonstration uses synthetic AIS records and simulated spill/drift metadata. The attribution pipeline is designed to accept real AIS and environmental observations when available.
 
@@ -19,33 +14,32 @@ Spill Detection
 
 ## Project Structure
 
-```text
 Aesteria/
 ├── model/
-│   └── notebook.ipynb
+│ └── notebook.ipynb
 │
 ├── backend/
-│   ├── src/
-│   │   ├── ais/
-│   │   │   ├── AISAttribution.java
-│   │   │   ├── SpillEvent.java
-│   │   │   ├── VesselRecord.java
-│   │   │   └── VesselResult.java
-│   │   │
-│   │   ├── server/
-│   │   │   └── ApiServer.java
-│   │   │
-│   ├── data/
-│   │   ├── drift_summary.csv
-│   │   └── results.json
-│   │
-│   ├── lib/
-│   │   └── postgresql-42.7.13.jar
-│   │
-│   └── bin/
+│ ├── src/
+│ │ ├── ais/
+│ │ │ ├── AISAttribution.java
+│ │ │ ├── SpillEvent.java
+│ │ │ ├── VesselRecord.java
+│ │ │ └── VesselResult.java
+│ │ │
+│ │ ├── server/
+│ │ │ └── ApiServer.java
+│ │ │
+│ ├── data/
+│ │ ├── drift_summary.csv
+│ │ └── results.json
+│ │
+│ ├── lib/
+│ │ └── postgresql-42.7.13.jar
+│ │
+│ └── bin/
 │
 ├── frontend/
-│   └── index.html
+│ └── index.html
 │
 ├── Dockerfile
 └── README.md
@@ -104,4 +98,3 @@ Detection results (`results.json`) are geolocated and passed through the drift a
 - Integrate real oceanographic and meteorological data (currents, wind) for drift modeling, in place of assumed vectors
 - Expand segmentation to explicitly separate look-alike substances from confirmed oil
 - End-to-end automated pipeline wiring (detection → drift → attribution → dashboard) without manual handoff
-
